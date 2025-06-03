@@ -1,0 +1,1460 @@
+commit 99770dc35c741b6c6bc3565cbf8b152b19f230e3
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Fri Mar 9 15:26:11 2018 -0600
+
+    Edits for running the original data provided instead of my testing samples
+
+diff --git a/bucket_collection_test.py b/bucket_collection_test.py
+index 669326c..c03d47f 100644
+--- a/bucket_collection_test.py
++++ b/bucket_collection_test.py
+@@ -14,11 +14,12 @@ from bucket_collection import BucketCollection
+ class BucketCollectionTest(unittest.TestCase):
+     @classmethod
+     def setUpClass(cls):
+-        # cls.results_file = "results.json"
+-        cls.results_file = "min_results.json"
++        cls.results_file = "results.json"
++        # cls.results_file = "min_results.json"
+         cls.results_filepath = os.path.join(os.path.dirname(__file__), cls.results_file)
+ 
+-        bucket_collection = BucketCollection("min_buckets.csv", "min_purchases.csv")
++        bucket_collection = BucketCollection("purchase_buckets.csv", "purchase_data.csv")
++        # bucket_collection = BucketCollection("min_buckets.csv", "min_purchases.csv")
+         bucket_collection.to_file(cls.results_file)
+ 
+         with open(cls.results_file) as file:
+@@ -55,7 +56,7 @@ class BucketCollectionTest(unittest.TestCase):
+         keys_iterator = iter(self.data_dictionary.keys())
+         self.assertTrue(next(keys_iterator) == "*,*,*")
+         # check first bucket in file provided is next key
+-        self.assertTrue(next(keys_iterator) == "Pearson,*,*")
++        self.assertTrue(next(keys_iterator) == "McGraw-Hill,5,40_day")
+         pass
+ 
+     def test_a_purchase_is_found_only_once(self):
+@@ -114,9 +115,9 @@ class BucketCollectionTest(unittest.TestCase):
+         test_string = "99191,7848537371773,PENGUIN RANDOMHOUSE,MIA,4,30_day,2017-05-21 10:01:19.571428"
+         self.assertIn(test_string, self.data_dictionary["Penguin Randomhouse,*,30_day"])
+ 
+-    def test_duration_only_bucket(self):
+-        test_string = "99999,9999999999999,MACMILLAN,MIA,3,110_day,2017-05-23 09:16:43.560846"
+-        self.assertIn(test_string, self.data_dictionary["*,*,110_day"])
++    # def test_duration_only_bucket(self):
++    #     test_string = "99999,9999999999999,MACMILLAN,MIA,3,110_day,2017-05-23 09:16:43.560846"
++    #     self.assertIn(test_string, self.data_dictionary["*,*,110_day"])
+ 
+     def test_price_only_bucket(self):
+         test_string = "98815,8022139588957,ENGLISH PUBLICATIONS,DTW,10,120_day,2017-08-09 12:42:30.561986"
+
+commit 06ae0219942a4ebaca6fd22fe846487674d42a48
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Fri Mar 9 15:18:59 2018 -0600
+
+    Finish testing that purchases are in order in their buckets
+
+diff --git a/bucket_collection_test.py b/bucket_collection_test.py
+index 8277ac0..669326c 100644
+--- a/bucket_collection_test.py
++++ b/bucket_collection_test.py
+@@ -76,15 +76,15 @@ class BucketCollectionTest(unittest.TestCase):
+         all_purchases = self.data_dictionary.values()
+         self.assertFalse(test_purchase in all_purchases)
+ 
+-    @unittest.skip("pending")
+     def test_purchases_ordered_by_order_id(self):
+-        pass
+-        # in a specific bucket check that the order_id's are going up
++        random_bucket_key, bucket_purchases = random.choice(list(self.data_dictionary.items()))
++        ids = list(map(lambda purchase: int(purchase.split(',')[0]), bucket_purchases))
++        self.assertTrue(sorted(ids) == ids)
+ 
+     def test_publisher_price_duration_bucket(self):
+         "Most specific"
+-        test_string = "99680,8193774926972,PEARSON,SNA,7,10_day,2017-07-10 07:07:11.587228"
+-        self.assertIn(test_string, self.data_dictionary["Pearson,7,10_day"])
++        test_string = "99145,0926889346680,MCGRAW-HILL,PHX,6,30_day,2017-08-31 12:52:41.570232"
++        self.assertIn(test_string, self.data_dictionary["McGraw-Hill,6,30_day"])
+ 
+     def test_publisher_duration_bucket(self):
+         test_string = "98835,6544295182149,MACMILLAN,CLE,4,40_day,2017-01-10 14:08:55.562501"
+
+commit 64512860bf4955af22aa8cba5e686653a6f8393d
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Fri Mar 9 13:56:07 2018 -0600
+
+    Finish testing no duplicate purchases
+
+diff --git a/bucket_collection_test.py b/bucket_collection_test.py
+index e8430cb..8277ac0 100644
+--- a/bucket_collection_test.py
++++ b/bucket_collection_test.py
+@@ -1,6 +1,7 @@
+ import unittest
+ import os.path
+ import json
++import random
+ from bucket_collection import Bucket
+ from bucket_collection import BucketCollection
+ 
+@@ -29,7 +30,6 @@ class BucketCollectionTest(unittest.TestCase):
+                 cls.data_dictionary[item['bucket'] + '-dup'] = item['purchases']
+             else:
+                 cls.data_dictionary[item['bucket']] = item['purchases']
+-        print(cls.data_dictionary)
+     # @classmethod
+     # def tearDownClass(cls):
+     #     print("Calling tearDown")
+@@ -58,10 +58,23 @@ class BucketCollectionTest(unittest.TestCase):
+         self.assertTrue(next(keys_iterator) == "Pearson,*,*")
+         pass
+ 
+-    @unittest.skip("pending")
+     def test_a_purchase_is_found_only_once(self):
+-        pass
+-        # going through all json content and ensure no repeats
++        test_purchases = [
++            '98765,0862728122370,OPENSTAX,CLT,5,150_day,2017-05-31 14:21:29.560404',
++            '98771,1899596499745,PEARSON,MIA,3,110_day,2017-05-23 09:16:43.560846',
++            '99377,8660464769977,PEARSON,JFK,2,40_day,2017-02-10 15:04:03.578055',
++            '98795,9277080469051,MCGRAW-HILL,MSP,6,120_day,2017-04-02 11:05:31.561470',
++            '98775,7192583653601,SCIPUB,BOS,8,140_day,2017-08-03 14:02:28.560950',
++            '98835,6544295182149,MACMILLAN,CLE,4,40_day,2017-01-10 14:08:55.562501',
++            '99680,8193774926972,PEARSON,SNA,7,10_day,2017-07-10 07:07:11.587228',
++            '98819,9793386372887,PENGUIN RANDOMHOUSE,DTW,3,90_day,2017-07-14 14:06:01.562089',
++            '99999,9999999999999,MACMILLAN,MIA,3,110_day,2017-05-23 09:16:43.560846',
++            '98815,8022139588957,ENGLISH PUBLICATIONS,DTW,10,120_day,2017-08-09 12:42:30.561986',
++            '98793,3455843886681,ENGLISH PUBLICATIONS,MCO,4,60_day,2017-05-16 08:51:17.561418',
++            '99191,7848537371773,PENGUIN RANDOMHOUSE,MIA,4,30_day,2017-05-21 10:01:19.571428']
++        test_purchase = random.choice(test_purchases)
++        all_purchases = self.data_dictionary.values()
++        self.assertFalse(test_purchase in all_purchases)
+ 
+     @unittest.skip("pending")
+     def test_purchases_ordered_by_order_id(self):
+
+commit aadfbd5b5042769b419c0b54ad3b2407951fd7f4
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Fri Mar 9 13:45:18 2018 -0600
+
+    Finish test of dup  keys to be empty
+
+diff --git a/bucket_collection.py b/bucket_collection.py
+index 2635832..676147c 100644
+--- a/bucket_collection.py
++++ b/bucket_collection.py
+@@ -1,26 +1,30 @@
+ import csv
+ import json
+ import inspect
++from random import randint
+ 
+ class Bucket:
+     # https://pythonconquerstheuniverse.wordpress.com/2012/02/15/mutable-default-arguments/
+-    def __init__(self, original_key = ""):
+-        self.original_key = original_key
++    def __init__(self, case_preserving_key = ""):
++        self.case_preserving_key = case_preserving_key
+         self.purchases = []
+ 
+ class BucketCollection:
+     def __init__(self, buckets_file_name, purchases_file_name):
+         self.buckets = {}
+ 
++        self.buckets['*,*,*'] = Bucket('*,*,*')
++
+         with open(buckets_file_name) as buckets_file:
+             readCSV = csv.reader(buckets_file)
+ 
+-            self.buckets['*,*,*'] = Bucket('*,*,*')
+-
+             for row in readCSV:
+-                original_key = ",".join([row[0],row[1],row[2]])
+-                bucket = Bucket(original_key)
+-                self.buckets[original_key.upper()] = bucket
++                current_key = ",".join([row[0],row[1],row[2]])
++                if current_key.upper() in self.buckets:
++                    current_key += '-dup' + randint(1, 9999).__str__()
++                bucket = Bucket(current_key)
++                # losing the original key here
++                self.buckets[current_key.upper()] = bucket
+ 
+         self.populate_buckets(purchases_file_name)
+ 
+@@ -29,7 +33,10 @@ class BucketCollection:
+ 
+         for key, bucket in self.buckets.items():
+               current_group = {}
+-              current_group["bucket"] =  bucket.original_key
++              json_key = bucket.case_preserving_key
++              if "-dup" in json_key:
++                  json_key = json_key.split("-dup")[0]
++              current_group["bucket"] =  json_key
+               current_group["purchases"] =  bucket.purchases
+               results.append(current_group)
+ 
+diff --git a/bucket_collection_test.py b/bucket_collection_test.py
+index 4d26bcd..e8430cb 100644
+--- a/bucket_collection_test.py
++++ b/bucket_collection_test.py
+@@ -25,10 +25,15 @@ class BucketCollectionTest(unittest.TestCase):
+ 
+         cls.data_dictionary = {}
+         for item in results_json:
+-            cls.data_dictionary[item['bucket']] = item['purchases']
+-
+-        # with open("min_results.json") as file:
+-        #     results_json = json.loads(file.read())
++            if item['bucket'] in cls.data_dictionary:
++                cls.data_dictionary[item['bucket'] + '-dup'] = item['purchases']
++            else:
++                cls.data_dictionary[item['bucket']] = item['purchases']
++        print(cls.data_dictionary)
++    # @classmethod
++    # def tearDownClass(cls):
++    #     print("Calling tearDown")
++    #     os.remove(cls.results_file)
+ 
+     def test_results_file_creation(self):
+         "Tests that a result file is generated"
+@@ -101,18 +106,15 @@ class BucketCollectionTest(unittest.TestCase):
+         self.assertIn(test_string, self.data_dictionary["*,*,110_day"])
+ 
+     def test_price_only_bucket(self):
+-        test_string = "98809,8629055703626,OXFORD UNIVERSITY PRESS,DCA,10,70_day,2017-03-31 14:27:54.561831"
++        test_string = "98815,8022139588957,ENGLISH PUBLICATIONS,DTW,10,120_day,2017-08-09 12:42:30.561986"
+         self.assertIn(test_string, self.data_dictionary["*,10,*"])
+ 
+     def test_catch_all_bucket(self):
+         test_string = "98765,0862728122370,OPENSTAX,CLT,5,150_day,2017-05-31 14:21:29.560404"
+         self.assertIn(test_string, self.data_dictionary["*,*,*"])
+ 
+-    @unittest.skip("pending")
+     def test_edge_case_repeated_bucket(self):
+-        pass
+-        # eg: SciPub,*,*, only first bucket has purchases, second bucket has no purchases
++        self.assertFalse(self.data_dictionary["SciPub,*,*-dup"])
+ 
+ if __name__ == "__main__":
+-    _setUp()
+     unittest.main()
+
+commit 7503106afa8d12a6646b29da5513f2c2a509aef0
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Wed Mar 7 14:26:55 2018 -0600
+
+    Most tests pass; just realized script doesn't create duplicate buckets
+
+diff --git a/bucket_collection_test.py b/bucket_collection_test.py
+index b0e565e..4d26bcd 100644
+--- a/bucket_collection_test.py
++++ b/bucket_collection_test.py
+@@ -51,6 +51,7 @@ class BucketCollectionTest(unittest.TestCase):
+         self.assertTrue(next(keys_iterator) == "*,*,*")
+         # check first bucket in file provided is next key
+         self.assertTrue(next(keys_iterator) == "Pearson,*,*")
++        pass
+ 
+     @unittest.skip("pending")
+     def test_a_purchase_is_found_only_once(self):
+@@ -62,61 +63,50 @@ class BucketCollectionTest(unittest.TestCase):
+         pass
+         # in a specific bucket check that the order_id's are going up
+ 
+-    @unittest.skip("pending")
+     def test_publisher_price_duration_bucket(self):
+-        pass
+-        # "Most specific"
+-        # eg: 99680,8193774926972,PEARSON,SNA,7,10_day,2017-07-10 07:07:11.587228 => "Pearson,7,10_day"
++        "Most specific"
++        test_string = "99680,8193774926972,PEARSON,SNA,7,10_day,2017-07-10 07:07:11.587228"
++        self.assertIn(test_string, self.data_dictionary["Pearson,7,10_day"])
+ 
+-    @unittest.skip("pending")
+     def test_publisher_duration_bucket(self):
+-        pass
+-        # eg: 98835,6544295182149,MACMILLAN,CLE,4,40_day,2017-01-10 14:08:55.562501 => "Macmillan,*,40_day"
++        test_string = "98835,6544295182149,MACMILLAN,CLE,4,40_day,2017-01-10 14:08:55.562501"
++        self.assertIn(test_string, self.data_dictionary["Macmillan,*,40_day"])
+ 
+-    @unittest.skip("pending")
+     def test_publisher_price_bucket(self):
+-        pass
+-       # eg: 98795,9277080469051,MCGRAW-HILL,MSP,6,120_day,2017-04-02 11:05:31.561470 =>   "McGraw-Hill,6,*"
++        test_string = "98795,9277080469051,MCGRAW-HILL,MSP,6,120_day,2017-04-02 11:05:31.561470"
++        self.assertIn(test_string, self.data_dictionary["McGraw-Hill,6,*"])
+ 
+-    @unittest.skip("pending")
+     def test_price_duration_bucket(self):
+-        pass
+-        # eg: 98819,9793386372887,PENGUIN RANDOMHOUSE,DTW,3,90_day,2017-07-14 14:06:01.562089 => "*,3,90_day"
++        test_string = "98819,9793386372887,PENGUIN RANDOMHOUSE,DTW,3,90_day,2017-07-14 14:06:01.562089"
++        self.assertIn(test_string, self.data_dictionary["*,3,90_day"])
+ 
+-    @unittest.skip("pending")
+     def test_publisher_only_bucket(self):
+-        pass
+-        # eg: 98771,1899596499745,PEARSON,MIA,3,110_day,2017-05-23 09:16:43.560846 => "Pearson,*,*"
++        test_string = "98771,1899596499745,PEARSON,MIA,3,110_day,2017-05-23 09:16:43.560846"
++        self.assertIn(test_string, self.data_dictionary["Pearson,*,*"])
+ 
+-    @unittest.skip("pending")
+     def test_publisher_only_bucket_with_upper_lower_letters(self):
+-        pass
+-      # eg: 98775,7192583653601,SCIPUB,BOS,8,140_day,2017-08-03 14:02:28.560950 => "SciPub,*,*"
++        test_string = "98775,7192583653601,SCIPUB,BOS,8,140_day,2017-08-03 14:02:28.560950"
++        self.assertIn(test_string, self.data_dictionary["SciPub,*,*"])
+ 
+-    @unittest.skip("pending")
+     def test_publisher_only_bucket_with_dash(self):
+-        pass
+-        # eg: => "McGraw-Hill,6,*"
++        test_string = "98795,9277080469051,MCGRAW-HILL,MSP,6,120_day,2017-04-02 11:05:31.561470"
++        self.assertIn(test_string, self.data_dictionary["McGraw-Hill,6,*"])
+ 
+-    @unittest.skip("pending")
+     def test_publisher_only_bucket_with_space(self):
+-        pass
+-        # eg: 99191,7848537371773,PENGUIN RANDOMHOUSE,MIA,4,30_day,2017-05-21 10:01:19.571428 => "Penguin Randomhouse,*,30_day"
++        test_string = "99191,7848537371773,PENGUIN RANDOMHOUSE,MIA,4,30_day,2017-05-21 10:01:19.571428"
++        self.assertIn(test_string, self.data_dictionary["Penguin Randomhouse,*,30_day"])
+ 
+-    @unittest.skip("pending")
+     def test_duration_only_bucket(self):
+-        pass
+-        # eg: 98819,9793386372887,PENGUIN RANDOMHOUSE,DTW,3,90_day,2017-07-14 14:06:01.562089 => "*,*,110_day"
++        test_string = "99999,9999999999999,MACMILLAN,MIA,3,110_day,2017-05-23 09:16:43.560846"
++        self.assertIn(test_string, self.data_dictionary["*,*,110_day"])
+ 
+-    @unittest.skip("pending")
+     def test_price_only_bucket(self):
+-        pass
+-        # made up eg: 99999,9999999999999,SCIPUB,MIA,3,110_day,2017-05-23 09:16:43.560846=> *,10,*"
++        test_string = "98809,8629055703626,OXFORD UNIVERSITY PRESS,DCA,10,70_day,2017-03-31 14:27:54.561831"
++        self.assertIn(test_string, self.data_dictionary["*,10,*"])
+ 
+-    @unittest.skip("pending")
+     def test_catch_all_bucket(self):
+-        pass
+-        # eg: 98765,0862728122370,OPENSTAX,CLT,5,150_day,2017-05-31 14:21:29.560404 => "*,*,*"
++        test_string = "98765,0862728122370,OPENSTAX,CLT,5,150_day,2017-05-31 14:21:29.560404"
++        self.assertIn(test_string, self.data_dictionary["*,*,*"])
+ 
+     @unittest.skip("pending")
+     def test_edge_case_repeated_bucket(self):
+
+commit 86aab24f18d65b01881f6ddafebb6810c6bc15b3
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Wed Mar 7 12:19:42 2018 -0600
+
+    setUp method is running. Got some tests going
+
+diff --git a/bucket_collection_test.py b/bucket_collection_test.py
+index 920493d..b0e565e 100644
+--- a/bucket_collection_test.py
++++ b/bucket_collection_test.py
+@@ -11,54 +11,46 @@ from bucket_collection import BucketCollection
+ #         pass
+ 
+ class BucketCollectionTest(unittest.TestCase):
+-    def _setUp(cls):
+-        print("setUp called")
+-        # to setup only once
+-        # http://stezz.blogspot.com/2011/04/calling-only-once-setup-in-unittest-in.html
+-        # https://stackoverflow.com/questions/14305941/run-setup-only-once
+-
+-        # buckets_file = "purchase_buckets.csv"
+-        # purchases_file = "purchase_data.csv"
+-        # results_file = "results.json"
+-        self.buckets_file = "min_buckets.csv"
+-        self.purchases_file = "min_purchases.csv"
+-        self.results_file = "min_results.json"
+-        self.results_filepath = os.path.join(os.path.dirname(__file__), self.results_file)
+-        self.results_json = {}
+-
+-        bucket_collection = BucketCollection(self.buckets_file, self.purchases_file)
+-        bucket_collection.to_file(self.results_file)
+-
+-        # data = json.loads(open(self.results_filepath, 'r').read())
+-        # self.__class__.results_json = json.dumps(results_file.read())
+-        with open(self.results_file) as file:
+-            data = json.dumps(file)
+-
+-        self.results_json.update(data)
++    @classmethod
++    def setUpClass(cls):
++        # cls.results_file = "results.json"
++        cls.results_file = "min_results.json"
++        cls.results_filepath = os.path.join(os.path.dirname(__file__), cls.results_file)
++
++        bucket_collection = BucketCollection("min_buckets.csv", "min_purchases.csv")
++        bucket_collection.to_file(cls.results_file)
++
++        with open(cls.results_file) as file:
++            results_json = json.loads(file.read())
++
++        cls.data_dictionary = {}
++        for item in results_json:
++            cls.data_dictionary[item['bucket']] = item['purchases']
++
++        # with open("min_results.json") as file:
++        #     results_json = json.loads(file.read())
+ 
+     def test_results_file_creation(self):
+         "Tests that a result file is generated"
+-        print("FILE ********")
+-        print(self.results_file)
+         self.assertTrue(os.path.isfile(self.results_file))
+ 
++    def test_results_json_has_content(self):
++        # alternate implementation: when loading JSON from file, instead of fail, show error
++        # bucket_collection = BucketCollection("purchase_buckets.csv", "purchase_data.csv")
++        # https://codeblogmoney.com/validate-json-using-python/
++        # https://stackoverflow.com/questions/23344948/python-validate-and-format-json-files
++        self.assertTrue(len(self.data_dictionary) > 0)
++
+     def test_generic_bucket_existence(self):
+         "Test that generic bucket was created"
+-        print("JSON HERE")
+-        print(self.results_json)
+-        print("DATA HERE")
+-        print(self.data)
+-        # self.assertIn("*,*,*", self.results_json)
+-
+-    def test_file_content_is_valid_json(self):
+-        # print(results_json.__len__())
+-        pass
++        self.assertIn("*,*,*", self.data_dictionary.keys())
+ 
+-    @unittest.skip("pending")
+     def test_buckets_generate_in_desired_order(self):
+-        pass
+-        # check *,*,* is last bucket
+-        # check first bucket in file is  first in results
++        # check *,*,* is first key
++        keys_iterator = iter(self.data_dictionary.keys())
++        self.assertTrue(next(keys_iterator) == "*,*,*")
++        # check first bucket in file provided is next key
++        self.assertTrue(next(keys_iterator) == "Pearson,*,*")
+ 
+     @unittest.skip("pending")
+     def test_a_purchase_is_found_only_once(self):
+
+commit aa74ed6ff2949dd8bfc6874fad205796f91dcb93
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Tue Mar 6 14:57:15 2018 -0600
+
+    Trying to use setUp; doesn't seem to be called
+
+diff --git a/bucket_collection_test.py b/bucket_collection_test.py
+index 12e4469..920493d 100644
+--- a/bucket_collection_test.py
++++ b/bucket_collection_test.py
+@@ -4,99 +4,133 @@ import json
+ from bucket_collection import Bucket
+ from bucket_collection import BucketCollection
+ 
+-class BucketTest(unittest.TestCase):
++# class BucketTest(unittest.TestCase):
++#     def test_init_creates_bucket_object(self):
++#         pass
++#     def test_init_assigns_key(self):
++#         pass
++
++class BucketCollectionTest(unittest.TestCase):
++    def _setUp(cls):
++        print("setUp called")
++        # to setup only once
++        # http://stezz.blogspot.com/2011/04/calling-only-once-setup-in-unittest-in.html
++        # https://stackoverflow.com/questions/14305941/run-setup-only-once
++
++        # buckets_file = "purchase_buckets.csv"
++        # purchases_file = "purchase_data.csv"
++        # results_file = "results.json"
++        self.buckets_file = "min_buckets.csv"
++        self.purchases_file = "min_purchases.csv"
++        self.results_file = "min_results.json"
++        self.results_filepath = os.path.join(os.path.dirname(__file__), self.results_file)
++        self.results_json = {}
++
++        bucket_collection = BucketCollection(self.buckets_file, self.purchases_file)
++        bucket_collection.to_file(self.results_file)
++
++        # data = json.loads(open(self.results_filepath, 'r').read())
++        # self.__class__.results_json = json.dumps(results_file.read())
++        with open(self.results_file) as file:
++            data = json.dumps(file)
++
++        self.results_json.update(data)
+ 
+     def test_results_file_creation(self):
+         "Tests that a result file is generated"
+-        self.assertTrue(os.path.isfile(results_filepath))
++        print("FILE ********")
++        print(self.results_file)
++        self.assertTrue(os.path.isfile(self.results_file))
+ 
+     def test_generic_bucket_existence(self):
+         "Test that generic bucket was created"
+-        self.assertIn("*,*,*", results_file_content)
++        print("JSON HERE")
++        print(self.results_json)
++        print("DATA HERE")
++        print(self.data)
++        # self.assertIn("*,*,*", self.results_json)
+ 
+     def test_file_content_is_valid_json(self):
+-        print(results_json.__len__())
++        # print(results_json.__len__())
++        pass
+ 
+     @unittest.skip("pending")
+-    def buckets_generate_in_desired_order(self):
++    def test_buckets_generate_in_desired_order(self):
+         pass
+         # check *,*,* is last bucket
+         # check first bucket in file is  first in results
+ 
++    @unittest.skip("pending")
+     def test_a_purchase_is_found_only_once(self):
+         pass
+         # going through all json content and ensure no repeats
+ 
++    @unittest.skip("pending")
+     def test_purchases_ordered_by_order_id(self):
+         pass
+         # in a specific bucket check that the order_id's are going up
+ 
++    @unittest.skip("pending")
+     def test_publisher_price_duration_bucket(self):
+         pass
+         # "Most specific"
+         # eg: 99680,8193774926972,PEARSON,SNA,7,10_day,2017-07-10 07:07:11.587228 => "Pearson,7,10_day"
+ 
++    @unittest.skip("pending")
+     def test_publisher_duration_bucket(self):
+         pass
+         # eg: 98835,6544295182149,MACMILLAN,CLE,4,40_day,2017-01-10 14:08:55.562501 => "Macmillan,*,40_day"
+ 
++    @unittest.skip("pending")
+     def test_publisher_price_bucket(self):
+         pass
+        # eg: 98795,9277080469051,MCGRAW-HILL,MSP,6,120_day,2017-04-02 11:05:31.561470 =>   "McGraw-Hill,6,*"
+ 
++    @unittest.skip("pending")
+     def test_price_duration_bucket(self):
+         pass
+         # eg: 98819,9793386372887,PENGUIN RANDOMHOUSE,DTW,3,90_day,2017-07-14 14:06:01.562089 => "*,3,90_day"
+ 
++    @unittest.skip("pending")
+     def test_publisher_only_bucket(self):
+         pass
+         # eg: 98771,1899596499745,PEARSON,MIA,3,110_day,2017-05-23 09:16:43.560846 => "Pearson,*,*"
+ 
++    @unittest.skip("pending")
+     def test_publisher_only_bucket_with_upper_lower_letters(self):
+         pass
+       # eg: 98775,7192583653601,SCIPUB,BOS,8,140_day,2017-08-03 14:02:28.560950 => "SciPub,*,*"
+ 
++    @unittest.skip("pending")
+     def test_publisher_only_bucket_with_dash(self):
+         pass
+         # eg: => "McGraw-Hill,6,*"
+ 
++    @unittest.skip("pending")
+     def test_publisher_only_bucket_with_space(self):
+         pass
+         # eg: 99191,7848537371773,PENGUIN RANDOMHOUSE,MIA,4,30_day,2017-05-21 10:01:19.571428 => "Penguin Randomhouse,*,30_day"
+ 
++    @unittest.skip("pending")
+     def test_duration_only_bucket(self):
+         pass
+         # eg: 98819,9793386372887,PENGUIN RANDOMHOUSE,DTW,3,90_day,2017-07-14 14:06:01.562089 => "*,*,110_day"
+ 
++    @unittest.skip("pending")
+     def test_price_only_bucket(self):
+         pass
+         # made up eg: 99999,9999999999999,SCIPUB,MIA,3,110_day,2017-05-23 09:16:43.560846=> *,10,*"
+ 
++    @unittest.skip("pending")
+     def test_catch_all_bucket(self):
+         pass
+         # eg: 98765,0862728122370,OPENSTAX,CLT,5,150_day,2017-05-31 14:21:29.560404 => "*,*,*"
+ 
++    @unittest.skip("pending")
+     def test_edge_case_repeated_bucket(self):
+         pass
+         # eg: SciPub,*,*, only first bucket has purchases, second bucket has no purchases
+ 
+-
+ if __name__ == "__main__":
+-    # don't think I should test the big files - too hairy
+-    # buckets_file_name = "purchase_buckets.csv"
+-    # purchases_file_name = "purchase_data.csv"
+-    # results_filename = "results.json"
+-
+-    buckets_file_name = "min_buckets.csv"
+-    purchases_file_name = "min_purchases.csv"
+-    results_filename = "min_results.json"
+-
+-    bucket_collection = BucketCollection(buckets_file_name, purchases_file_name)
+-    bucket_collection.to_file(results_filename)
+-
+-    results_filepath = os.path.join(os.path.dirname(__file__), results_filename)
+-    results_file =  open(results_filepath, 'r')
+-    results_file_content = results_file.read()
+-    results_json = json.loads(results_file_content)
++    _setUp()
+     unittest.main()
+-    results_file.close()
+
+commit 59b4bc2c10cf8976715a0ea8fb3bf72094837feb
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Tue Mar 6 10:54:28 2018 -0600
+
+    These are the tests I'd like to implement; organized them a bit.
+
+diff --git a/bucket_collection_test.py b/bucket_collection_test.py
+index 58b86a4..12e4469 100644
+--- a/bucket_collection_test.py
++++ b/bucket_collection_test.py
+@@ -1,24 +1,9 @@
+ import unittest
+ import os.path
++import json
+ from bucket_collection import Bucket
+ from bucket_collection import BucketCollection
+ 
+-# test for a very specific purchase record that it gets assigned to the specific bucket
+-  # eg: 99680,8193774926972,PEARSON,SNA,7,10_day,2017-07-10 07:07:11.587228 => "Pearson,7,10_day"
+-  # edge case when name includes dash
+-  # edge case when name includes space
+-  # edge case when name has lower and upper
+-  # edge case repeated bucket
+-# test for duration specific:
+-  # eg: 98835,6544295182149,MACMILLAN,CLE,4,40_day,2017-01-10 14:08:55.562501 => "Macmillan,*,40_day"
+-# test for price specific:
+-  # eg: 98795,9277080469051,MCGRAW-HILL,MSP,6,120_day,2017-04-02 11:05:31.561470 => "McGraw-Hill,6,*"
+-# test for only publisher specific:
+-  # =>
+-# test for catch-all bucket
+-
+-import json
+-
+ class BucketTest(unittest.TestCase):
+ 
+     def test_results_file_creation(self):
+@@ -29,20 +14,75 @@ class BucketTest(unittest.TestCase):
+         "Test that generic bucket was created"
+         self.assertIn("*,*,*", results_file_content)
+ 
+-    def test_bucket_assignments(self):
+-        "Most specific"
+-        self.assertIn(
+-'''
+-    {
+-        "bucket": "Pearson,7,10_day",
+-        "purchases": [
+-            "99680,8193774926972,PEARSON,SNA,7,10_day,2017-07-10 07:07:11.587228"
+-        ]
+-    }
+-''', results_file_content)
++    def test_file_content_is_valid_json(self):
++        print(results_json.__len__())
++
++    @unittest.skip("pending")
++    def buckets_generate_in_desired_order(self):
++        pass
++        # check *,*,* is last bucket
++        # check first bucket in file is  first in results
++
++    def test_a_purchase_is_found_only_once(self):
++        pass
++        # going through all json content and ensure no repeats
++
++    def test_purchases_ordered_by_order_id(self):
++        pass
++        # in a specific bucket check that the order_id's are going up
++
++    def test_publisher_price_duration_bucket(self):
++        pass
++        # "Most specific"
++        # eg: 99680,8193774926972,PEARSON,SNA,7,10_day,2017-07-10 07:07:11.587228 => "Pearson,7,10_day"
++
++    def test_publisher_duration_bucket(self):
++        pass
++        # eg: 98835,6544295182149,MACMILLAN,CLE,4,40_day,2017-01-10 14:08:55.562501 => "Macmillan,*,40_day"
++
++    def test_publisher_price_bucket(self):
++        pass
++       # eg: 98795,9277080469051,MCGRAW-HILL,MSP,6,120_day,2017-04-02 11:05:31.561470 =>   "McGraw-Hill,6,*"
++
++    def test_price_duration_bucket(self):
++        pass
++        # eg: 98819,9793386372887,PENGUIN RANDOMHOUSE,DTW,3,90_day,2017-07-14 14:06:01.562089 => "*,3,90_day"
++
++    def test_publisher_only_bucket(self):
++        pass
++        # eg: 98771,1899596499745,PEARSON,MIA,3,110_day,2017-05-23 09:16:43.560846 => "Pearson,*,*"
++
++    def test_publisher_only_bucket_with_upper_lower_letters(self):
++        pass
++      # eg: 98775,7192583653601,SCIPUB,BOS,8,140_day,2017-08-03 14:02:28.560950 => "SciPub,*,*"
++
++    def test_publisher_only_bucket_with_dash(self):
++        pass
++        # eg: => "McGraw-Hill,6,*"
++
++    def test_publisher_only_bucket_with_space(self):
++        pass
++        # eg: 99191,7848537371773,PENGUIN RANDOMHOUSE,MIA,4,30_day,2017-05-21 10:01:19.571428 => "Penguin Randomhouse,*,30_day"
++
++    def test_duration_only_bucket(self):
++        pass
++        # eg: 98819,9793386372887,PENGUIN RANDOMHOUSE,DTW,3,90_day,2017-07-14 14:06:01.562089 => "*,*,110_day"
++
++    def test_price_only_bucket(self):
++        pass
++        # made up eg: 99999,9999999999999,SCIPUB,MIA,3,110_day,2017-05-23 09:16:43.560846=> *,10,*"
++
++    def test_catch_all_bucket(self):
++        pass
++        # eg: 98765,0862728122370,OPENSTAX,CLT,5,150_day,2017-05-31 14:21:29.560404 => "*,*,*"
++
++    def test_edge_case_repeated_bucket(self):
++        pass
++        # eg: SciPub,*,*, only first bucket has purchases, second bucket has no purchases
++
+ 
+ if __name__ == "__main__":
+-    # don't think I should test the big files
++    # don't think I should test the big files - too hairy
+     # buckets_file_name = "purchase_buckets.csv"
+     # purchases_file_name = "purchase_data.csv"
+     # results_filename = "results.json"
+@@ -51,14 +91,12 @@ if __name__ == "__main__":
+     purchases_file_name = "min_purchases.csv"
+     results_filename = "min_results.json"
+ 
+-    bucket_collection = BucketCollection(buckets_file_name)
+-    bucket_collection.populate_buckets(purchases_file_name)
+-    # tried to test if values in JSON, but I'd do too much digging; checkig if text in file
+-    # results_json = bucket_collection.to_json()
++    bucket_collection = BucketCollection(buckets_file_name, purchases_file_name)
+     bucket_collection.to_file(results_filename)
+ 
+     results_filepath = os.path.join(os.path.dirname(__file__), results_filename)
+     results_file =  open(results_filepath, 'r')
+     results_file_content = results_file.read()
++    results_json = json.loads(results_file_content)
+     unittest.main()
+     results_file.close()
+
+commit 2959b00fb3de66b8534777789f9167157bc0242b
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Tue Mar 6 09:47:38 2018 -0600
+
+    Tweak the specificy order; move the populating of the buckets in init method
+
+diff --git a/bucket_collection.py b/bucket_collection.py
+index d0dbf34..2635832 100644
+--- a/bucket_collection.py
++++ b/bucket_collection.py
+@@ -6,28 +6,41 @@ class Bucket:
+     # https://pythonconquerstheuniverse.wordpress.com/2012/02/15/mutable-default-arguments/
+     def __init__(self, original_key = ""):
+         self.original_key = original_key
+-        self.key = original_key.upper()
+         self.purchases = []
+ 
+ class BucketCollection:
+-    def __init__(self, buckets_file_name):
++    def __init__(self, buckets_file_name, purchases_file_name):
+         self.buckets = {}
+-        self.all_keys = []
+ 
+         with open(buckets_file_name) as buckets_file:
+             readCSV = csv.reader(buckets_file)
++
++            self.buckets['*,*,*'] = Bucket('*,*,*')
++
+             for row in readCSV:
+-                self.all_keys.append(",".join([row[0],row[1],row[2]]))
+-                # bucket = Bucket(original_key)
+-                # self.buckets[original_key.upper()] = bucket
++                original_key = ",".join([row[0],row[1],row[2]])
++                bucket = Bucket(original_key)
++                self.buckets[original_key.upper()] = bucket
++
++        self.populate_buckets(purchases_file_name)
+ 
+-        if "*,*,*" not in self.all_keys:
+-            self.all_keys.insert(0, "*,*,*")
++    def to_json(self):
++        results = []
+ 
+-        for key in self.all_keys:
+-            bucket = Bucket(key)
+-            self.buckets[bucket.original_key.upper()] = bucket
++        for key, bucket in self.buckets.items():
++              current_group = {}
++              current_group["bucket"] =  bucket.original_key
++              current_group["purchases"] =  bucket.purchases
++              results.append(current_group)
++
++        return results
++
++    def to_file(self, result_file_name):
++      results_file = open(result_file_name, 'w')
++      results_file.write(json.dumps(self.to_json(), indent = 4, sort_keys = True))
++      results_file.close()
+ 
++    # make private
+     def populate_buckets(self, purchases_file_name):
+         with open(purchases_file_name) as purchases_file:
+             readCSV = csv.reader(purchases_file)
+@@ -42,33 +55,18 @@ class BucketCollection:
+                 complete_key = ",".join([publisher, price, duration]).upper()
+                 publisher_duration_key = ",".join([publisher, "*", duration]).upper()
+                 publisher_price_key = ",".join([publisher, price, "*"]).upper()
+-                publisher_only = ",".join([publisher, "*", "*"]).upper()
+                 price_duration_key = ",".join(["*", price, duration]).upper()
++                publisher_only = ",".join([publisher, "*", "*"]).upper()
+                 duration_only_key = ",".join(["*", "*", duration]).upper()
+                 price_only_key = ",".join(["*", price, "*"]).upper()
+                 catch_all_key = ",".join(["*","*","*"]).upper()
+ 
+-                possible_keys = [complete_key, publisher_duration_key, publisher_price_key, publisher_only,
+-                            price_duration_key, duration_only_key, price_only_key, catch_all_key]
++                possible_keys = [complete_key, publisher_duration_key, publisher_price_key, price_duration_key, publisher_only, duration_only_key, price_only_key, catch_all_key]
+ 
+                 for possible_key in possible_keys:
++                    #I don't think following line is efficient; alternatives?
+                     if possible_key in self.buckets.keys():
+                         stringified_record = ",".join(map(str, row))
+                         self.buckets[possible_key].purchases.append(stringified_record)
+                         break
+ 
+-    def to_json(self):
+-        results = []
+-
+-        for key, bucket in self.buckets.items():
+-              current_group = {}
+-              current_group["bucket"] =  bucket.original_key
+-              current_group["purchases"] =  bucket.purchases
+-              results.append(current_group)
+-
+-        return results
+-
+-    def to_file(self, result_file_name):
+-      results_file = open(result_file_name, 'w')
+-      results_file.write(json.dumps(self.to_json(), indent = 4, sort_keys = True))
+-      results_file.close()
+
+commit 3b54ec433411f977c2ea6997d03ed1fba6c5469a
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Wed Dec 6 15:39:46 2017 -0600
+
+    Move the runner in the test file; running out to time to figure out how to check if content exists in file
+
+diff --git a/bucket_collection.py b/bucket_collection.py
+index 6aab037..d0dbf34 100644
+--- a/bucket_collection.py
++++ b/bucket_collection.py
+@@ -72,9 +72,3 @@ class BucketCollection:
+       results_file = open(result_file_name, 'w')
+       results_file.write(json.dumps(self.to_json(), indent = 4, sort_keys = True))
+       results_file.close()
+-
+-def run(buckets_file_name, purchases_file_name, result_file_name):
+-    bucket_collection = BucketCollection(buckets_file_name)
+-    bucket_collection.populate_buckets(purchases_file_name)
+-    bucket_collection.to_file(result_file_name)
+-
+diff --git a/bucket_collection_test.py b/bucket_collection_test.py
+index 21221df..58b86a4 100644
+--- a/bucket_collection_test.py
++++ b/bucket_collection_test.py
+@@ -1,6 +1,7 @@
+ import unittest
+ import os.path
+-from bucket_collection import run
++from bucket_collection import Bucket
++from bucket_collection import BucketCollection
+ 
+ # test for a very specific purchase record that it gets assigned to the specific bucket
+   # eg: 99680,8193774926972,PEARSON,SNA,7,10_day,2017-07-10 07:07:11.587228 => "Pearson,7,10_day"
+@@ -16,21 +17,48 @@ from bucket_collection import run
+   # =>
+ # test for catch-all bucket
+ 
++import json
++
+ class BucketTest(unittest.TestCase):
+ 
+     def test_results_file_creation(self):
+         "Tests that a result file is generated"
+         self.assertTrue(os.path.isfile(results_filepath))
+ 
+-    def test_keys(self):
++    def test_generic_bucket_existence(self):
+         "Test that generic bucket was created"
+-        self.assertIn("*,*,*", results)
++        self.assertIn("*,*,*", results_file_content)
++
++    def test_bucket_assignments(self):
++        "Most specific"
++        self.assertIn(
++'''
++    {
++        "bucket": "Pearson,7,10_day",
++        "purchases": [
++            "99680,8193774926972,PEARSON,SNA,7,10_day,2017-07-10 07:07:11.587228"
++        ]
++    }
++''', results_file_content)
+ 
+ if __name__ == "__main__":
++    # don't think I should test the big files
++    # buckets_file_name = "purchase_buckets.csv"
++    # purchases_file_name = "purchase_data.csv"
++    # results_filename = "results.json"
++
++    buckets_file_name = "min_buckets.csv"
++    purchases_file_name = "min_purchases.csv"
+     results_filename = "min_results.json"
+-    run("min_buckets.csv", "min_purchases.csv", results_filename)
++
++    bucket_collection = BucketCollection(buckets_file_name)
++    bucket_collection.populate_buckets(purchases_file_name)
++    # tried to test if values in JSON, but I'd do too much digging; checkig if text in file
++    # results_json = bucket_collection.to_json()
++    bucket_collection.to_file(results_filename)
++
+     results_filepath = os.path.join(os.path.dirname(__file__), results_filename)
+     results_file =  open(results_filepath, 'r')
+-    results = results_file.read()
++    results_file_content = results_file.read()
+     unittest.main()
+     results_file.close()
+
+commit a2489bee4e8b65e73a50068d9de6890afa4a3182
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Wed Dec 6 14:36:13 2017 -0600
+
+    Remove the pseudo code - some of it is obsolete as I switched strategies.
+
+diff --git a/bucket_collection.py b/bucket_collection.py
+index ddcc219..6aab037 100644
+--- a/bucket_collection.py
++++ b/bucket_collection.py
+@@ -1,23 +1,7 @@
+-# read buckets files
+-  # make keys as concat of capitalized name, price, capitalized duration
+-  # eg: MCGRAW-HILL540_DAY, MCGRAW-HILL3*, MCGRAW-HILL**,*220DAY
+-  # later note: I decided to keep the comma in the key since that was the desired output bucket name
+-# for each purchase data line
+-  # extract the relevant chars from the string with a regex:
+-    # eg:7639,9781541920172,Pearson,ORD,2,1_day,2015-06-30 12:25:00
+-    # capture text between second and third comma, ignore before 4th comma,
+-  # check the hash  for key like so:
+-    # name, price, duration
+-    # name, *, duration
+-    # name, price, *
+-    # name, *, *
+-    # *, *, *
+-
+ import csv
+ import json
+ import inspect
+ 
+-
+ class Bucket:
+     # https://pythonconquerstheuniverse.wordpress.com/2012/02/15/mutable-default-arguments/
+     def __init__(self, original_key = ""):
+
+commit 6d1fd9412904a9762ce3cf29e8ca83bd54c54a7a
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Wed Dec 6 14:33:54 2017 -0600
+
+    Test checking for generic bucket passes
+
+diff --git a/bucket_collection_test.py b/bucket_collection_test.py
+index 93b95cc..21221df 100644
+--- a/bucket_collection_test.py
++++ b/bucket_collection_test.py
+@@ -20,13 +20,17 @@ class BucketTest(unittest.TestCase):
+ 
+     def test_results_file_creation(self):
+         "Tests that a result file is generated"
+-        self.assertTrue(os.path.isfile(RESULTS_FILENAME))
++        self.assertTrue(os.path.isfile(results_filepath))
+ 
+-    # def test_keys(self):
+-    #     "Test that generic bucket was created"
+-    #     self.assertIn("*,*,*", results_file)
++    def test_keys(self):
++        "Test that generic bucket was created"
++        self.assertIn("*,*,*", results)
+ 
+ if __name__ == "__main__":
+-    run("min_buckets.csv", "min_purchases.csv")
+-    RESULTS_FILENAME = os.path.join(os.path.dirname(__file__), "min_results.json")
++    results_filename = "min_results.json"
++    run("min_buckets.csv", "min_purchases.csv", results_filename)
++    results_filepath = os.path.join(os.path.dirname(__file__), results_filename)
++    results_file =  open(results_filepath, 'r')
++    results = results_file.read()
+     unittest.main()
++    results_file.close()
+
+commit 1c6a7f5b926b75ca77c4f2a5c0c116e703fa5632
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Wed Dec 6 14:24:47 2017 -0600
+
+    Clean up prints and unnecessary code
+
+diff --git a/bucket_collection.py b/bucket_collection.py
+index 9dc9917..ddcc219 100644
+--- a/bucket_collection.py
++++ b/bucket_collection.py
+@@ -45,7 +45,6 @@ class BucketCollection:
+             self.buckets[bucket.original_key.upper()] = bucket
+ 
+     def populate_buckets(self, purchases_file_name):
+-        print(self.buckets.keys())
+         with open(purchases_file_name) as purchases_file:
+             readCSV = csv.reader(purchases_file)
+ 
+@@ -68,13 +67,9 @@ class BucketCollection:
+                 possible_keys = [complete_key, publisher_duration_key, publisher_price_key, publisher_only,
+                             price_duration_key, duration_only_key, price_only_key, catch_all_key]
+ 
+-                print(possible_keys)
+-
+                 for possible_key in possible_keys:
+-                    print(possible_key, possible_key in self.buckets.keys())
+                     if possible_key in self.buckets.keys():
+                         stringified_record = ",".join(map(str, row))
+-                        print(self.buckets[possible_key].purchases)
+                         self.buckets[possible_key].purchases.append(stringified_record)
+                         break
+ 
+@@ -94,14 +89,8 @@ class BucketCollection:
+       results_file.write(json.dumps(self.to_json(), indent = 4, sort_keys = True))
+       results_file.close()
+ 
+-
+-# def main(buckets_file_name, purchases_file_name):
+-#     buckets = create_keys(buckets_file_name, purchases_file_name)
+-#     populated_buckets = populate_buckets(buckets)
+-#     results = generate_result(buckets)
+-#     print_to_json(results)
+-def run(buckets_file_name, purchases_file_name):
++def run(buckets_file_name, purchases_file_name, result_file_name):
+     bucket_collection = BucketCollection(buckets_file_name)
+     bucket_collection.populate_buckets(purchases_file_name)
+-    bucket_collection.to_file("min_results.json")
++    bucket_collection.to_file(result_file_name)
+ 
+
+commit 8f46f33705586ddbadbdf9f44778f19e89f667d0
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Wed Dec 6 14:17:18 2017 -0600
+
+    Solved the mutable default arguments issue and switch to use a regular dict since ordering is supported in 3.6
+
+diff --git a/bucket_collection.py b/bucket_collection.py
+index 21cbdf5..9dc9917 100644
+--- a/bucket_collection.py
++++ b/bucket_collection.py
+@@ -15,31 +15,34 @@
+ 
+ import csv
+ import json
+-from collections import OrderedDict
+ import inspect
+ 
+ 
+ class Bucket:
+-    def __init__(self, original_key = "", purchases = []):
++    # https://pythonconquerstheuniverse.wordpress.com/2012/02/15/mutable-default-arguments/
++    def __init__(self, original_key = ""):
+         self.original_key = original_key
+         self.key = original_key.upper()
+-        self.purchases = purchases
++        self.purchases = []
+ 
+ class BucketCollection:
+     def __init__(self, buckets_file_name):
+-        self.buckets = OrderedDict()
++        self.buckets = {}
++        self.all_keys = []
+ 
+         with open(buckets_file_name) as buckets_file:
+             readCSV = csv.reader(buckets_file)
+             for row in readCSV:
+-                original_key = ",".join([row[0],row[1],row[2]])
+-                bucket = Bucket(original_key)
+-                self.buckets[original_key.upper()] = bucket
++                self.all_keys.append(",".join([row[0],row[1],row[2]]))
++                # bucket = Bucket(original_key)
++                # self.buckets[original_key.upper()] = bucket
+ 
+-        if "*,*,*" not in self.buckets.keys():
+-            self.buckets["*,*,*"] = Bucket("*,*,*")
+-            self.buckets.move_to_end("*,*,*", last = False)
++        if "*,*,*" not in self.all_keys:
++            self.all_keys.insert(0, "*,*,*")
+ 
++        for key in self.all_keys:
++            bucket = Bucket(key)
++            self.buckets[bucket.original_key.upper()] = bucket
+ 
+     def populate_buckets(self, purchases_file_name):
+         print(self.buckets.keys())
+
+commit c4d76fd0f6483a070f6650f2200e0093b29536e4
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Wed Dec 6 12:41:04 2017 -0600
+
+    It puts all purchase records in all buckets. Debug
+
+diff --git a/bucket_collection.py b/bucket_collection.py
+index 4e98326..21cbdf5 100644
+--- a/bucket_collection.py
++++ b/bucket_collection.py
+@@ -16,6 +16,8 @@
+ import csv
+ import json
+ from collections import OrderedDict
++import inspect
++
+ 
+ class Bucket:
+     def __init__(self, original_key = "", purchases = []):
+@@ -25,65 +27,58 @@ class Bucket:
+ 
+ class BucketCollection:
+     def __init__(self, buckets_file_name):
+-        buckets = OrderedDict()
++        self.buckets = OrderedDict()
+ 
+         with open(buckets_file_name) as buckets_file:
+             readCSV = csv.reader(buckets_file)
+             for row in readCSV:
+                 original_key = ",".join([row[0],row[1],row[2]])
+-                upcased_key = original_key.upper()
+                 bucket = Bucket(original_key)
+-                buckets[upcased_key] = bucket
+-
+-        if "*,*,*" not in buckets:
+-            buckets["*,*,*"] = ["*,*,*"]
+-            buckets.move_to_end("*,*,*", last=False)
+-
+-
+-        self.buckets = buckets
+-
+-    # def populate_buckets(purchases_file_name):
+-    #     with open(purchases_file_name) as purchases_file:
+-    #         readCSV = csv.reader(purchases_file)
++                self.buckets[original_key.upper()] = bucket
+ 
+-    #         for row in readCSV:
+-    #             order_id = row[0]
+-    #             publisher = row[2]
+-    #             price = row[4]
+-    #             duration = row[5]
+-    #             key = ",".join([publisher, price, duration])
++        if "*,*,*" not in self.buckets.keys():
++            self.buckets["*,*,*"] = Bucket("*,*,*")
++            self.buckets.move_to_end("*,*,*", last = False)
+ 
+-    #             complete_key = ",".join([publisher, price, duration]).upper()
+-    #             publisher_duration_key = ",".join([publisher, "*", duration]).upper()
+-    #             publisher_price_key = ",".join([publisher, price, "*"]).upper()
+-    #             publisher_only = ",".join([publisher, "*", "*"]).upper()
+-    #             price_duration_key = ",".join(["*", price, duration]).upper()
+-    #             duration_only_key = ",".join(["*", "*", duration]).upper()
+-    #             price_only_key = ",".join(["*", price, "*"]).upper()
+-    #             catch_all_key = ",".join(["*","*","*"]).upper()
+ 
+-    #             key_list = [complete_key, publisher_duration_key, publisher_price_key, publisher_only,
+-    #                         price_duration_key, duration_only_key, price_only_key, catch_all_key]
++    def populate_buckets(self, purchases_file_name):
++        print(self.buckets.keys())
++        with open(purchases_file_name) as purchases_file:
++            readCSV = csv.reader(purchases_file)
+ 
+-    #             for key in key_list:
+-    #                 if key in buckets:
+-    #                     stringified_record = ",".join(map(str, row))
+-    #                     buckets[key].append(stringified_record)
+-    #                     break
+-
+-
+-    def build_json(self):
++            for row in readCSV:
++                order_id = row[0]
++                publisher = row[2]
++                price = row[4]
++                duration = row[5]
++                key = ",".join([publisher, price, duration])
++
++                complete_key = ",".join([publisher, price, duration]).upper()
++                publisher_duration_key = ",".join([publisher, "*", duration]).upper()
++                publisher_price_key = ",".join([publisher, price, "*"]).upper()
++                publisher_only = ",".join([publisher, "*", "*"]).upper()
++                price_duration_key = ",".join(["*", price, duration]).upper()
++                duration_only_key = ",".join(["*", "*", duration]).upper()
++                price_only_key = ",".join(["*", price, "*"]).upper()
++                catch_all_key = ",".join(["*","*","*"]).upper()
++
++                possible_keys = [complete_key, publisher_duration_key, publisher_price_key, publisher_only,
++                            price_duration_key, duration_only_key, price_only_key, catch_all_key]
++
++                print(possible_keys)
++
++                for possible_key in possible_keys:
++                    print(possible_key, possible_key in self.buckets.keys())
++                    if possible_key in self.buckets.keys():
++                        stringified_record = ",".join(map(str, row))
++                        print(self.buckets[possible_key].purchases)
++                        self.buckets[possible_key].purchases.append(stringified_record)
++                        break
++
++    def to_json(self):
+         results = []
+ 
+-        # for bucket, content in buckets.items():
+-        #     current_group = {}
+-        #     current_group["bucket"] = content[0]
+-        #     current_group["purchases"] = content[1:]
+-        #     results.append(current_group)
+         for key, bucket in self.buckets.items():
+-              print(type(key), key)
+-              print(type(bucket.original_key), bucket.original_key)
+-              print(type(bucket.purchases), bucket.purchases)
+               current_group = {}
+               current_group["bucket"] =  bucket.original_key
+               current_group["purchases"] =  bucket.purchases
+@@ -91,10 +86,9 @@ class BucketCollection:
+ 
+         return results
+ 
+-
+     def to_file(self, result_file_name):
+       results_file = open(result_file_name, 'w')
+-      results_file.write(json.dumps(self.build_json(), indent = 4, sort_keys = True))
++      results_file.write(json.dumps(self.to_json(), indent = 4, sort_keys = True))
+       results_file.close()
+ 
+ 
+@@ -105,7 +99,6 @@ class BucketCollection:
+ #     print_to_json(results)
+ def run(buckets_file_name, purchases_file_name):
+     bucket_collection = BucketCollection(buckets_file_name)
+-    # bucket_collection.populate_buckets(purchases_file_name)
+-    # bucket_collection.build_json
++    bucket_collection.populate_buckets(purchases_file_name)
+     bucket_collection.to_file("min_results.json")
+ 
+
+commit a8781e3400b21dbb3dd74cc3f60264c89101532b
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Wed Dec 6 09:56:35 2017 -0600
+
+    Buckets get generated - with refactored code
+
+diff --git a/bucket_collection.py b/bucket_collection.py
+index 2234f1a..4e98326 100644
+--- a/bucket_collection.py
++++ b/bucket_collection.py
+@@ -82,10 +82,11 @@ class BucketCollection:
+         #     results.append(current_group)
+         for key, bucket in self.buckets.items():
+               print(type(key), key)
+-              print(type(bucket), bucket.__dir__())
++              print(type(bucket.original_key), bucket.original_key)
++              print(type(bucket.purchases), bucket.purchases)
+               current_group = {}
+-              current_group["bucket"] =  key
+-              current_group["purchases"] =  bucket
++              current_group["bucket"] =  bucket.original_key
++              current_group["purchases"] =  bucket.purchases
+               results.append(current_group)
+ 
+         return results
+diff --git a/bucket_collection_test.py b/bucket_collection_test.py
+index 29f8b6d..93b95cc 100644
+--- a/bucket_collection_test.py
++++ b/bucket_collection_test.py
+@@ -1,6 +1,6 @@
+ import unittest
+ import os.path
+-from buckets import run
++from bucket_collection import run
+ 
+ # test for a very specific purchase record that it gets assigned to the specific bucket
+   # eg: 99680,8193774926972,PEARSON,SNA,7,10_day,2017-07-10 07:07:11.587228 => "Pearson,7,10_day"
+
+commit 17a6e698afcb6bd234f131a860559f603702671d
+Author: Rodica Trifan <trodicaro@gmail.com>
+Date:   Wed Dec 6 09:29:29 2017 -0600
+
+    Change solution file name to buckets; same for test file
+
+diff --git a/bucket_collection.py b/bucket_collection.py
+new file mode 100644
+index 0000000..2234f1a
+--- /dev/null
++++ b/bucket_collection.py
+@@ -0,0 +1,110 @@
++# read buckets files
++  # make keys as concat of capitalized name, price, capitalized duration
++  # eg: MCGRAW-HILL540_DAY, MCGRAW-HILL3*, MCGRAW-HILL**,*220DAY
++  # later note: I decided to keep the comma in the key since that was the desired output bucket name
++# for each purchase data line
++  # extract the relevant chars from the string with a regex:
++    # eg:7639,9781541920172,Pearson,ORD,2,1_day,2015-06-30 12:25:00
++    # capture text between second and third comma, ignore before 4th comma,
++  # check the hash  for key like so:
++    # name, price, duration
++    # name, *, duration
++    # name, price, *
++    # name, *, *
++    # *, *, *
++
++import csv
++import json
++from collections import OrderedDict
++
++class Bucket:
++    def __init__(self, original_key = "", purchases = []):
++        self.original_key = original_key
++        self.key = original_key.upper()
++        self.purchases = purchases
++
++class BucketCollection:
++    def __init__(self, buckets_file_name):
++        buckets = OrderedDict()
++
++        with open(buckets_file_name) as buckets_file:
++            readCSV = csv.reader(buckets_file)
++            for row in readCSV:
++                original_key = ",".join([row[0],row[1],row[2]])
++                upcased_key = original_key.upper()
++                bucket = Bucket(original_key)
++                buckets[upcased_key] = bucket
++
++        if "*,*,*" not in buckets:
++            buckets["*,*,*"] = ["*,*,*"]
++            buckets.move_to_end("*,*,*", last=False)
++
++
++        self.buckets = buckets
++
++    # def populate_buckets(purchases_file_name):
++    #     with open(purchases_file_name) as purchases_file:
++    #         readCSV = csv.reader(purchases_file)
++
++    #         for row in readCSV:
++    #             order_id = row[0]
++    #             publisher = row[2]
++    #             price = row[4]
++    #             duration = row[5]
++    #             key = ",".join([publisher, price, duration])
++
++    #             complete_key = ",".join([publisher, price, duration]).upper()
++    #             publisher_duration_key = ",".join([publisher, "*", duration]).upper()
++    #             publisher_price_key = ",".join([publisher, price, "*"]).upper()
++    #             publisher_only = ",".join([publisher, "*", "*"]).upper()
++    #             price_duration_key = ",".join(["*", price, duration]).upper()
++    #             duration_only_key = ",".join(["*", "*", duration]).upper()
++    #             price_only_key = ",".join(["*", price, "*"]).upper()
++    #             catch_all_key = ",".join(["*","*","*"]).upper()
++
++    #             key_list = [complete_key, publisher_duration_key, publisher_price_key, publisher_only,
++    #                         price_duration_key, duration_only_key, price_only_key, catch_all_key]
++
++    #             for key in key_list:
++    #                 if key in buckets:
++    #                     stringified_record = ",".join(map(str, row))
++    #                     buckets[key].append(stringified_record)
++    #                     break
++
++
++    def build_json(self):
++        results = []
++
++        # for bucket, content in buckets.items():
++        #     current_group = {}
++        #     current_group["bucket"] = content[0]
++        #     current_group["purchases"] = content[1:]
++        #     results.append(current_group)
++        for key, bucket in self.buckets.items():
++              print(type(key), key)
++              print(type(bucket), bucket.__dir__())
++              current_group = {}
++              current_group["bucket"] =  key
++              current_group["purchases"] =  bucket
++              results.append(current_group)
++
++        return results
++
++
++    def to_file(self, result_file_name):
++      results_file = open(result_file_name, 'w')
++      results_file.write(json.dumps(self.build_json(), indent = 4, sort_keys = True))
++      results_file.close()
++
++
++# def main(buckets_file_name, purchases_file_name):
++#     buckets = create_keys(buckets_file_name, purchases_file_name)
++#     populated_buckets = populate_buckets(buckets)
++#     results = generate_result(buckets)
++#     print_to_json(results)
++def run(buckets_file_name, purchases_file_name):
++    bucket_collection = BucketCollection(buckets_file_name)
++    # bucket_collection.populate_buckets(purchases_file_name)
++    # bucket_collection.build_json
++    bucket_collection.to_file("min_results.json")
++
+diff --git a/bucket_collection_test.py b/bucket_collection_test.py
+new file mode 100644
+index 0000000..29f8b6d
+--- /dev/null
++++ b/bucket_collection_test.py
+@@ -0,0 +1,32 @@
++import unittest
++import os.path
++from buckets import run
++
++# test for a very specific purchase record that it gets assigned to the specific bucket
++  # eg: 99680,8193774926972,PEARSON,SNA,7,10_day,2017-07-10 07:07:11.587228 => "Pearson,7,10_day"
++  # edge case when name includes dash
++  # edge case when name includes space
++  # edge case when name has lower and upper
++  # edge case repeated bucket
++# test for duration specific:
++  # eg: 98835,6544295182149,MACMILLAN,CLE,4,40_day,2017-01-10 14:08:55.562501 => "Macmillan,*,40_day"
++# test for price specific:
++  # eg: 98795,9277080469051,MCGRAW-HILL,MSP,6,120_day,2017-04-02 11:05:31.561470 => "McGraw-Hill,6,*"
++# test for only publisher specific:
++  # =>
++# test for catch-all bucket
++
++class BucketTest(unittest.TestCase):
++
++    def test_results_file_creation(self):
++        "Tests that a result file is generated"
++        self.assertTrue(os.path.isfile(RESULTS_FILENAME))
++
++    # def test_keys(self):
++    #     "Test that generic bucket was created"
++    #     self.assertIn("*,*,*", results_file)
++
++if __name__ == "__main__":
++    run("min_buckets.csv", "min_purchases.csv")
++    RESULTS_FILENAME = os.path.join(os.path.dirname(__file__), "min_results.json")
++    unittest.main()
