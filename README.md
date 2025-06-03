@@ -1,7 +1,7 @@
 A collection of snapshots from projects I've worked on. Each piece highlights a different aspect of my hands-on experience with various areas of software and data engineering. Showcasing some areas below, but for a more complete picture please visit each file in the folder.
 
 ## Data modeling
-![data modeling](db_modeling_employee.png)
+![Header Image](db_modeling_employee.png)
 
 ## Data migration
 ![data migration](a_sample_migration_mapping.png)
